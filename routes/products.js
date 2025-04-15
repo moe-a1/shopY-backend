@@ -110,4 +110,29 @@ router.get('/category/:categoryName', async (req, res) => {
   }
 });
 
+router.get('/search/query', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    // Use a case-insensitive regular expression to search in both title and description
+    const searchRegex = new RegExp(q, 'i');
+    
+    const products = await Product.find({
+      $or: [
+        { title: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } }
+      ]
+    }).populate('seller', 'username');
+    
+    res.json(products);
+  } catch (error) {
+    console.error('Error searching products:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 module.exports = router;
