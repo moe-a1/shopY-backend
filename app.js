@@ -4,6 +4,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
+const categoryRoutes = require('./routes/category');
 
 const app = express();
 
@@ -20,6 +21,7 @@ mongoose.connect(mongoURI)
 app.use("/api/auth", authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/category', categoryRoutes);
 
 // Server connection
 const PORT = process.env.PORT;
