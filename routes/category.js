@@ -4,7 +4,7 @@ const Category = require('../models/category');
 // Add multiple categories
 router.post('/addCategories', async (req, res) => {
     try {
-        const { names } = req.body; 
+        const { names } = req.body;
 
         if (!Array.isArray(names) || names.length === 0) {
             return res.status(400).json({ message: 'Please provide an array of category names' });
@@ -30,6 +30,17 @@ router.post('/addCategories', async (req, res) => {
         });
     } catch (error) {
         console.error('Error adding categories:', error.message);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Get all categories
+router.get('/getAllCategories', async (req, res) => {
+    try {
+        const categories = await Category.find();
+        res.status(200).json(categories);
+    } catch (error) {
+        console.error('Error fetching categories:', error.message);
         res.status(500).json({ message: 'Server Error' });
     }
 });
