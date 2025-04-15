@@ -62,4 +62,32 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.get('/getPriceRange', async (req, res) => {
+  try {
+    const minPriceProduct = await Product.findOne().sort({ price: 1 }).limit(1);
+    const maxPriceProduct = await Product.findOne().sort({ price: -1 }).limit(1);
+    
+    res.json({ minPrice: minPriceProduct.price, maxPrice: maxPriceProduct.price });
+  } catch (error) {
+    console.error('Error fetching price range:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.get('/filterByPrice', async (req, res) => {
+  try {
+    const { minPrice, maxPrice } = req.query;
+
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+    
+    const products = await Product.find({ price: { $gte: min, $lte: max }}).populate('seller', 'username');
+    
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching products by price range:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 module.exports = router;
