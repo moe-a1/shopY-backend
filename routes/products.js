@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('./verifyToken');
 const Product = require('../models/Product');
+const Category = require('../models/category');
 
 router.post('/', verifyToken, async (req, res) => {
   try {
@@ -86,6 +87,25 @@ router.get('/filterByPrice', async (req, res) => {
     res.json(products);
   } catch (error) {
     console.error('Error fetching products by price range:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.get('/category/:categoryName', async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    
+    const category = await Category.findOne({ name: categoryName });
+    
+    if (!category) {
+      return res.status(404).json({ message: `Category '${categoryName}' not found` });
+    }
+    
+    const products = await Product.find({ category: category._id }).populate('seller', 'username');
+    
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching products by category:', error.message);
     res.status(500).json({ message: 'Server Error' });
   }
 });
