@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const cartRoutes = require('./routes/cart');
 const categoryRoutes = require('./routes/category');
+const userRoutes = require('./routes/user');
 
 const app = express();
 
@@ -20,7 +21,7 @@ mongoose.connect(mongoURI)
 .then(() => console.log('MongoDB Connected'))
 .catch((err) => console.error('MongoDB connection error:', err));
 
-
+app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
