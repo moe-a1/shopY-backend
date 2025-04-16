@@ -156,6 +156,24 @@ router.get('/search/query', async (req, res) => {
   }
 });
 
+router.get('/random/:count', async (req, res) => {
+  try {
+    const count = parseInt(req.params.count) || 8;
+
+    const totalProducts = await Product.countDocuments();
+    const limitCount = Math.min(count, totalProducts);
+    
+    const randomProducts = await Product.aggregate([ { $sample: { size: limitCount } } ]);
+    
+    await Product.populate(randomProducts, { path: 'seller', select: 'username' });
+    
+    res.json(randomProducts);
+  } catch (error) {
+    console.error('Error fetching random products:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
