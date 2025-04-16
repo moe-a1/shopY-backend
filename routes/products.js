@@ -109,21 +109,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-
-
 router.get('/category/:categoryName', async (req, res) => {
   try {
     const { categoryName } = req.params;
     
     const category = await Category.findOne({ name: categoryName });
-    
     if (!category) {
       return res.status(404).json({ message: `Category '${categoryName}' not found` });
     }
+
+    const allProducts = await Product.find().populate('seller', 'username').populate('category', 'name');
     
-    const products = await Product.find({ category: category._id }).populate('seller', 'username');
+    const filteredProducts = allProducts.filter(product => {
+      return product.category.some(cat => cat._id.toString() === category._id.toString());
+    });
     
-    res.json(products);
+    res.json(filteredProducts);
   } catch (error) {
     console.error('Error fetching products by category:', error.message);
     res.status(500).json({ message: 'Server Error' });
