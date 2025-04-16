@@ -12,7 +12,7 @@ const productSchema = new mongoose.Schema({
     description: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
     images: { type: [String], required: true },
-    category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+    category: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true }], 
     quantity: { type: Number, required: true, min: 0 },
     seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     reviews: [reviewSchema],
