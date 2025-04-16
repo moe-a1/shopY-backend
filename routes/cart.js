@@ -15,8 +15,49 @@ const calculateTotalPrice = async (products) => {
     return totalPrice;
 };
 
+
+router.get('/getCart', verifyToken, async (req, res) => {
+    try {
+        let cart = await Cart.findOne({ user: req.user.id }).populate({
+            path: 'products.product',
+            select: 'title price images',
+            populate: {
+                path: 'seller', 
+                select: 'username', 
+            },
+        });
+
+        
+        if (!cart) {
+            cart = new Cart({
+                user: req.user.id,
+                products: [],
+                totalPrice: 0,
+            });
+            await cart.save();
+        }
+
+        res.status(200).json({
+            products: cart.products.map((item) => ({
+                product: {
+                    _id: item.product._id,
+                    name: item.product.title,
+                    price: item.product.price,
+                    seller: item.product.seller?.username || 'Unknown',
+                    image: item.product.images,
+                },
+                quantity: item.quantity,
+            })),
+            totalPrice: cart.totalPrice,
+        });
+    } catch (error) {
+        console.error('Error fetching cart:', error.message);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // Update cart
-router.post('/cart/updateCart', verifyToken, async (req, res) => {
+router.post('/updateCart', verifyToken, async (req, res) => {
     try {
         const { productId, quantity } = req.body;
 
@@ -24,7 +65,6 @@ router.post('/cart/updateCart', verifyToken, async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
-
         let cart = await Cart.findOne({ user: req.user.id });
 
         if (cart) {
@@ -56,7 +96,7 @@ router.post('/cart/updateCart', verifyToken, async (req, res) => {
 });
 
 // Remove product from cart
-router.delete('/cart/removeProduct/:productId', verifyToken, async (req, res) => {
+router.delete('/removeProduct/:productId', verifyToken, async (req, res) => {
     try {
         const { productId } = req.params;
 
@@ -88,7 +128,7 @@ router.delete('/cart/removeProduct/:productId', verifyToken, async (req, res) =>
 });
 
 // Empty cart
-router.delete('/cart/empty', verifyToken, async (req, res) => {
+router.delete('/empty', verifyToken, async (req, res) => {
     try {
         const cart = await Cart.findOne({ user: req.user.id });
 
