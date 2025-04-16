@@ -131,6 +131,65 @@ router.get('/category/:categoryName', async (req, res) => {
   }
 });
 
+router.get('/category/:categoryName/filter', async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    const { minPrice, maxPrice } = req.query;
+    
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+    
+    const formattedCategoryName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1).toLowerCase();
+    const category = await Category.findOne({ name: formattedCategoryName });
+    if (!category) {
+      return res.status(404).json({ message: `Category '${categoryName}' not found` });
+    }
+
+    const allProducts = await Product.find({
+      price: { $gte: min, $lte: max }
+    }).populate('seller', 'username').populate('category', 'name');
+    
+    const filteredProducts = allProducts.filter(product => {
+      return product.category.some(cat => cat._id.toString() === category._id.toString());
+    });
+        
+    res.json(filteredProducts);
+  } catch (error) {
+    console.error('Error filtering products by category and price:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.get('/category/:categoryName/getPriceRange', async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    
+    const category = await Category.findOne({ name: categoryName });
+    if (!category) {
+      return res.status(404).json({ message: `Category '${categoryName}' not found` });
+    }
+
+    const allProducts = await Product.find().populate('category', 'name');
+    
+    const filteredProducts = allProducts.filter(product => {
+      return product.category.some(cat => cat._id.toString() === category._id.toString());
+    });
+    
+    if (filteredProducts.length === 0) {
+      return res.json({ minPrice: 0, maxPrice: 0 });
+    }
+    
+    const prices = filteredProducts.map(product => product.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    
+    res.json({ minPrice, maxPrice });
+  } catch (error) {
+    console.error('Error fetching category price range:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 router.get('/search/query', async (req, res) => {
   try {
     const { q } = req.query;
