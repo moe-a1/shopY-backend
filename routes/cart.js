@@ -65,7 +65,6 @@ router.post('/updateCart', verifyToken, async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
-        console.log(product);
         let cart = await Cart.findOne({ user: req.user.id });
 
         if (cart) {
@@ -88,7 +87,6 @@ router.post('/updateCart', verifyToken, async (req, res) => {
         cart.totalPrice = await calculateTotalPrice(cart.products);
 
         await cart.save();
-        console.log(cart);
 
         res.status(200).json(cart);
     } catch (error) {
