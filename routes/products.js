@@ -8,25 +8,31 @@ router.post('/', verifyToken, async (req, res) => {
   try {
     const { title, description, price, images, category, quantity } = req.body;
 
-    // Find all categories by their names
     const categoryDocs = await Category.find({ name: { $in: category } });
     if (categoryDocs.length !== category.length) {
       return res.status(400).json({ message: 'One or more categories not found' });
     }
     console.log(categoryDocs);
-    const categoryIds = categoryDocs.map(cat => cat._id); // Extract ObjectIds
+    const categoryIds = categoryDocs.map(cat => cat._id);
 
     const newProduct = new Product({
       title,
       description,
       price,
       images,
-      category: categoryIds, // Use an array of ObjectIds
+      category: categoryIds,
       quantity,
       seller: req.user.id
     });
 
     const product = await newProduct.save();
+    
+    await Promise.all(
+      categoryIds.map(categoryId => 
+        Category.findByIdAndUpdate(categoryId, { $push: { products: product._id } }, { new: true })
+      )
+    );
+
     res.status(201).json(product);
   } catch (error) {
     console.error('Error creating product:', error.message);
@@ -145,6 +151,74 @@ router.get('/search/query', async (req, res) => {
     res.json(products);
   } catch (error) {
     console.error('Error searching products:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    
+    if (product.seller.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only delete your own products' });
+    }
+    
+    await Promise.all(
+      product.category.map(categoryId => 
+        Category.findByIdAndUpdate(categoryId, { $pull: { products: product._id } }, { new: true })
+      )
+    );
+    
+    await Product.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting product:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.put('/:id', verifyToken, async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { title, description, price, images, category, quantity } = req.body;
+    
+    const product = await Product.findById(productId);
+    
+    if (product.seller.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only update your own products' });
+    }
+    
+    if (category && Array.isArray(category)) {
+      const categoryDocs = await Category.find({ name: { $in: category } });
+      
+      const newCategoryIds = categoryDocs.map(cat => cat._id.toString());
+      const oldCategoryIds = product.category.map(id => id.toString());
+      
+      const categoriesToAdd = newCategoryIds.filter(id => !oldCategoryIds.includes(id));
+      const categoriesToRemove = oldCategoryIds.filter(id => !newCategoryIds.includes(id));
+      
+      await Promise.all(
+        categoriesToRemove.map(categoryId => Category.findByIdAndUpdate(categoryId,{ $pull: { products: productId } }))
+      );
+      await Promise.all(
+        categoriesToAdd.map(categoryId => Category.findByIdAndUpdate(categoryId,{ $push: { products: productId } }))
+      );
+      
+      product.category = newCategoryIds.map(id => id);
+    }
+    
+    if (title) product.title = title;
+    if (description) product.description = description;
+    if (price) product.price = price;
+    if (images) product.images = images;
+    if (quantity !== undefined) product.quantity = quantity;
+    
+    const updatedProduct = await product.save();
+    
+    res.json(updatedProduct);
+  } catch (error) {
+    console.error('Error updating product:', error.message);
     res.status(500).json({ message: 'Server Error' });
   }
 });
