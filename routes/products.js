@@ -8,12 +8,20 @@ router.post('/', verifyToken, async (req, res) => {
   try {
     const { title, description, price, images, category, quantity } = req.body;
 
+    // Find all categories by their names
+    const categoryDocs = await Category.find({ name: { $in: category } });
+    if (categoryDocs.length !== category.length) {
+      return res.status(400).json({ message: 'One or more categories not found' });
+    }
+    console.log(categoryDocs);
+    const categoryIds = categoryDocs.map(cat => cat._id); // Extract ObjectIds
+
     const newProduct = new Product({
       title,
       description,
       price,
       images,
-      category,
+      category: categoryIds, // Use an array of ObjectIds
       quantity,
       seller: req.user.id
     });

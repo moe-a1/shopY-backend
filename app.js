@@ -8,8 +8,11 @@ const categoryRoutes = require('./routes/category');
 
 const app = express();
 
-app.use(express.json());
-
+// Increase payload size limit
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+const cors = require('cors');
+app.use(cors());
 
 // MongoDB connection
 const mongoURI = process.env.MONGO_URI;
@@ -22,6 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/category', categoryRoutes);
+
 
 // Server connection
 const PORT = process.env.PORT;
