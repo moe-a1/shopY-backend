@@ -203,8 +203,7 @@ router.get('/search/query', async (req, res) => {
     
     const products = await Product.find({
       $or: [
-        { title: { $regex: searchRegex } },
-        { description: { $regex: searchRegex } }
+        { title: { $regex: searchRegex } }
       ]
     }).populate('seller', 'username');
     
