@@ -301,4 +301,28 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
+
+router.get('/:id/related', async (req, res) => {
+  try {
+    const productId = req.params.id;
+
+    // Find the product by ID
+    const product = await Product.findById(productId).populate('category', 'name');
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Find related products in the same categories, excluding the current product
+    const relatedProducts = await Product.find({
+      category: { $in: product.category },
+      _id: { $ne: productId }
+    }).limit(10).populate('seller', 'username');
+
+    res.json(relatedProducts);
+  } catch (error) {
+    console.error('Error fetching related products:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 module.exports = router;
