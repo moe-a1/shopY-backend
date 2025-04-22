@@ -53,9 +53,17 @@ router.get('/myproducts', verifyToken, async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find().populate('seller', 'username').populate('reviews.user', 'username');
-    
-    res.json(products);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
+
+    const totalProducts = await Product.countDocuments();
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    const products = await Product.find().populate('seller', 'username').populate('reviews.user', 'username')
+      .skip(skip).limit(limit);
+
+    res.json({ products, currentPage: page, totalPages, totalProducts });
   } catch (error) {
     console.error('Error fetching products:', error.message);
     res.status(500).json({ message: 'Server Error' });
