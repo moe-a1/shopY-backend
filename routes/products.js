@@ -120,9 +120,6 @@ router.get('/:id', async (req, res) => {
 router.get('/category/:categoryName', async (req, res) => {
   try {
     const { categoryName } = req.params;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 6;
-    const skip = (page - 1) * limit;
     
     const category = await Category.findOne({ name: categoryName });
     if (!category) {
@@ -135,17 +132,7 @@ router.get('/category/:categoryName', async (req, res) => {
       return product.category.some(cat => cat._id.toString() === category._id.toString());
     });
     
-    const totalProducts = filteredProducts.length;
-    const totalPages = Math.ceil(totalProducts / limit);
-    
-    const paginatedProducts = filteredProducts.slice(skip, skip + limit);
-    
-    res.json({ 
-      products: paginatedProducts, 
-      currentPage: page, 
-      totalPages, 
-      totalProducts 
-    });
+    res.json(filteredProducts);
   } catch (error) {
     console.error('Error fetching products by category:', error.message);
     res.status(500).json({ message: 'Server Error' });
