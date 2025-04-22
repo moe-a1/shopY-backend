@@ -302,10 +302,10 @@ router.put('/:id', async (req, res) => {
 });
 
 
-router.post('/:id/reviews', async (req, res) => {
+router.post('/:id/reviews', verifyToken, async (req, res) => {
   try {
     const productId = req.params.id;
-    const { user, rating, comment } = req.body; // <-- user now comes from req.body
+    const { rating, comment } = req.body; 
 
     const product = await Product.findById(productId);
 
@@ -314,7 +314,7 @@ router.post('/:id/reviews', async (req, res) => {
     }
 
     const newReview = {
-      user, // <-- directly use the provided user ID
+      user: req.user.id, 
       rating,
       comment,
     };
