@@ -53,7 +53,7 @@ router.get('/myproducts', verifyToken, async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find().populate('seller', 'username');
+    const products = await Product.find().populate('seller', 'username').populate('reviews.user', 'username');
     
     res.json(products);
   } catch (error) {
@@ -96,7 +96,7 @@ router.get('/filterByPrice', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('seller', 'username');
+    const product = await Product.findById(req.params.id).populate('seller', 'username') .populate('reviews.user', 'username'); // populate reviewer username;
     
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -255,10 +255,10 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const productId = req.params.id;
-    const { title, description, price, images, category, quantity } = req.body;
+    const { title, description, price, images, category, quantity, reviews } = req.body;
     
     const product = await Product.findById(productId);
     
@@ -289,6 +289,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     if (description) product.description = description;
     if (price) product.price = price;
     if (images) product.images = images;
+    if (reviews) product.reviews = reviews;
     if (quantity !== undefined) product.quantity = quantity;
     
     const updatedProduct = await product.save();
@@ -299,6 +300,35 @@ router.put('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 });
+
+
+router.post('/:id/reviews', verifyToken, async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const { rating, comment } = req.body; 
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const newReview = {
+      user: req.user.id, 
+      rating,
+      comment,
+    };
+
+    product.reviews.push(newReview);
+    await product.save();
+
+    res.status(201).json(product.reviews[product.reviews.length - 1]);
+  } catch (error) {
+    console.error('Error adding review:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 
 
 router.get('/:id/related', async (req, res) => {
