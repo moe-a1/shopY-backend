@@ -241,4 +241,77 @@ router.delete('/:bazaarId/categories/:categoryId', verifyToken, async (req, res)
   }
 });
 
+// Add multiple BazaarCategories to the database
+router.post('/categories/add', verifyToken, async (req, res) => {
+  try {
+    const { categories } = req.body;
+
+    if (!Array.isArray(categories) || categories.length === 0) {
+      return res.status(400).json({ message: 'Please provide an array of categories' });
+    }
+
+    const savedCategories = [];
+    for (const category of categories) {
+      const { name, brandsNames, images, bazaar } = category;
+      
+      if (!name || !brandsNames || !Array.isArray(images)) {
+        continue;
+      }
+
+      const newCategory = new BazaarCategories({
+        name,
+        brandsNames,
+        images,
+        bazaar: bazaar || null
+      });
+
+      const savedCategory = await newCategory.save();
+      savedCategories.push(savedCategory);
+      
+      if (bazaar) {
+        const existingBazaar = await Bazaar.findById(bazaar);
+        if (existingBazaar) {
+          existingBazaar.categories.push(savedCategory._id);
+          await existingBazaar.save();
+        }
+      }
+    }
+
+    res.status(201).json({
+      message: 'BazaarCategories added successfully',
+      categories: savedCategories
+    });
+  } catch (error) {
+    console.error('Error adding BazaarCategories:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Get all BazaarCategories
+router.get('/categories/all', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const totalCategories = await BazaarCategories.countDocuments();
+    const totalPages = Math.ceil(totalCategories / limit);
+
+    const categories = await BazaarCategories.find()
+      .populate('bazaar', 'name')
+      .skip(skip)
+      .limit(limit);
+
+    res.json({ 
+      categories, 
+      currentPage: page, 
+      totalPages, 
+      totalCategories 
+    });
+  } catch (error) {
+    console.error('Error fetching BazaarCategories:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 module.exports = router;
