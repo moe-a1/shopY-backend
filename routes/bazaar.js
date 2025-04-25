@@ -4,17 +4,32 @@ const { verifyToken } = require('./verifyToken');
 const { Bazaar, BazaarCategories } = require('../models/bazaar');
 
 // Create a new bazaar
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { name, partitionInfo, openDates, openTimes, location } = req.body;
+    const { name, partitionInfo, openDates, openTimes, location, categoriesIds } = req.body;
 
+    // Ensure categoriesIds is an array
+    const categoryIdsArray = Array.isArray(categoriesIds)
+      ? categoriesIds
+      : categoriesIds.split(',').map(id => id.trim());
+
+    // Validate the provided category IDs
+    const validCategories = await BazaarCategories.find({
+      _id: { $in: categoryIdsArray }
+    });
+
+    if (validCategories.length !== categoryIdsArray.length) {
+      return res.status(400).json({ message: 'Some category IDs are invalid' });
+    }
+
+    // Create a new bazaar with the valid category IDs
     const newBazaar = new Bazaar({
       name,
       partitionInfo,
       openDates,
       openTimes,
       location,
-      categories: []
+      categories: validCategories.map(category => category._id)
     });
 
     const bazaar = await newBazaar.save();
@@ -242,7 +257,7 @@ router.delete('/:bazaarId/categories/:categoryId', verifyToken, async (req, res)
 });
 
 // Add multiple BazaarCategories to the database
-router.post('/categories/add', verifyToken, async (req, res) => {
+router.post('/categories/add', async (req, res) => {
   try {
     const { categories } = req.body;
 
