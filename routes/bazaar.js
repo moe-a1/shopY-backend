@@ -54,13 +54,18 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 3;
     const skip = (page - 1) * limit;
-
-    const totalBazaars = await Bazaar.countDocuments();
+    
+    const filter = {};
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+    
+    const totalBazaars = await Bazaar.countDocuments(filter);
     const totalPages = Math.ceil(totalBazaars / limit);
 
-    const bazaars = await Bazaar.find()
+    const bazaars = await Bazaar.find(filter)
       .populate('categories')
       .skip(skip)
       .limit(limit);
