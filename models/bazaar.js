@@ -26,6 +26,12 @@ const BazaarSchema = new mongoose.Schema(
             required: true, 
             trim: true 
         },
+        status: {
+            type: String,
+            enum: ['active', 'coming_soon'],
+            default: 'active',
+            required: true
+        },
         partitionInfo: { 
             type: String, 
             required: true, 
