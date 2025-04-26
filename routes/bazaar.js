@@ -6,32 +6,42 @@ const { Bazaar, BazaarCategories } = require('../models/bazaar');
 // Create a new bazaar
 router.post('/', async (req, res) => {
   try {
-    const { name, partitionInfo, openDates, openTimes, location, categoriesIds } = req.body;
+    const { name, status, partitionInfo, openDates, openTimes, location, categoriesIds } = req.body;
 
-    // Ensure categoriesIds is an array
-    const categoryIdsArray = Array.isArray(categoriesIds)
-      ? categoriesIds
-      : categoriesIds.split(',').map(id => id.trim());
-
-    // Validate the provided category IDs
-    const validCategories = await BazaarCategories.find({
-      _id: { $in: categoryIdsArray }
-    });
-
-    if (validCategories.length !== categoryIdsArray.length) {
-      return res.status(400).json({ message: 'Some category IDs are invalid' });
-    }
-
-    // Create a new bazaar with the valid category IDs
-    const newBazaar = new Bazaar({
+    const bazaarData = {
       name,
+      status: status || 'active',
+      location,
       partitionInfo,
       openDates,
-      openTimes,
-      location,
-      categories: validCategories.map(category => category._id)
-    });
+      openTimes
+    };
 
+    if (status !== 'coming_soon' && (!partitionInfo || !openDates || !openTimes)) {
+      return res.status(400).json({ 
+        message: 'Active bazaars require partitionInfo, openDates, and openTimes' 
+      });
+    }
+
+    if (categoriesIds) {
+      const categoryIdsArray = Array.isArray(categoriesIds)
+        ? categoriesIds
+        : categoriesIds.split(',').map(id => id.trim());
+
+      const validCategories = await BazaarCategories.find({
+        _id: { $in: categoryIdsArray }
+      });
+
+      if (validCategories.length !== categoryIdsArray.length) {
+        return res.status(400).json({ message: 'Some category IDs are invalid' });
+      }
+
+      bazaarData.categories = validCategories.map(category => category._id);
+    } else {
+      bazaarData.categories = [];
+    }
+
+    const newBazaar = new Bazaar(bazaarData);
     const bazaar = await newBazaar.save();
     res.status(201).json(bazaar);
   } catch (error) {
@@ -86,7 +96,7 @@ router.get('/:id', async (req, res) => {
 // Update a bazaar
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    const { name, partitionInfo, openDates, openTimes, location } = req.body;
+    const { name, status, partitionInfo, openDates, openTimes, location } = req.body;
     
     const bazaar = await Bazaar.findById(req.params.id);
     
@@ -95,10 +105,18 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
     
     if (name) bazaar.name = name;
-    if (partitionInfo) bazaar.partitionInfo = partitionInfo;
-    if (openDates) bazaar.openDates = openDates;
-    if (openTimes) bazaar.openTimes = openTimes;
+    if (status) bazaar.status = status;
     if (location) bazaar.location = location;
+    
+    if (status === 'coming_soon') {
+      if (partitionInfo) bazaar.partitionInfo = partitionInfo;
+      if (openDates) bazaar.openDates = openDates;
+      if (openTimes) bazaar.openTimes = openTimes;
+    } else {
+      if (partitionInfo) bazaar.partitionInfo = partitionInfo;
+      if (openDates) bazaar.openDates = openDates;
+      if (openTimes) bazaar.openTimes = openTimes;
+    }
     
     const updatedBazaar = await bazaar.save();
     
